@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🌐 Petualangan Literasi Digital</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .game-header {
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            z-index: 50;
+        }
+
+        .game-board {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 70%, #90EE90 100%);
+        }
+
+        .player {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            width: 45px;
+            height: 50px;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translateX(-50%);
+            z-index: 100;
+            transition: transform 0.1s;
+        }
+
+        .player.hit {
+            animation: hitAnim 0.3s;
+        }
+
+        @keyframes hitAnim {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.2); }
+        }
+
+        .obstacle {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: 3px solid;
+            z-index: 30;
+        }
+
+        .obstacle.spike {
+            background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+            border-color: #C44569;
+        }
+
+        .obstacle.bomb {
+            background: radial-gradient(circle at 30% 30%, #FFD700, #FF8C00);
+            border-color: #CC6600;
+            animation: rotate 2s infinite linear;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .obstacle.shield {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border-color: #2E7D32;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .obstacle.question {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: #4a3a99;
+            color: white;
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(to bottom, #90EE90, #228B22);
+            border-top: 3px solid #FFD700;
+            z-index: 10;
+        }
+
+        .controls {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 10px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.1s;
+            font-size: 1rem;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .btn-move {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            padding: 12px 20px;
+        }
+
+        .btn-move:active {
+            transform: scale(0.95);
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, #FF6B9D, #C44569);
+            padding: 14px 35px;
+            font-size: 1.05rem;
+        }
+
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            max-width: 95%;
+            max-height: 85%;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .modal-question {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .option-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-btn {
+            padding: 10px;
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: 600;
+            transition: all 0.2s;
+            -webkit-user-select: none;
+        }
+
+        .option-btn:active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: scale(0.98);
+        }
+
+        .option-btn.correct {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .option-btn.wrong {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+
+        .feedback {
+            font-weight: bold;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .feedback.correct {
+            background: #C8E6C9;
+            color: #2E7D32;
+        }
+
+        .feedback.wrong {
+            background: #FFCDD2;
+            color: #C62828;
+        }
+
+        /* Start Screen */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .start-screen.hidden {
+            display: none;
+        }
+
+        .start-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .start-subtitle {
+            color: white;
+            text-align: center;
+            max-width: 90%;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .start-btn {
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 22px;
+            font-weight: bold;
+            font-size: 1.05rem;
+            cursor: pointer;
+            -webkit-user-select: none;
+        }
+
+        .end-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            gap: 20px;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .end-screen.active {
+            display: flex;
+        }
+
+        .end-icon {
+            font-size: 3rem;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .end-score {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .stage-text {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 200;
+            animation: fadeInOut 3s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Start Screen -->
+    <div class="start-screen" id="startScreen">
+        <div class="start-title">🌐 Petualangan Literasi Digital</div>
+        <div class="start-subtitle">
+            <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 10px;">PPKN Kelas 8 - Bab 6</div>
+            <div>
+                🎮 Hindari Obstacle Berbahaya<br>
+                ❓ Jawab Soal untuk Poin Bonus<br>
+                🛡️ Kumpulkan Shield untuk Perlindungan<br>
+                <br>
+                Gunakan tombol ◀ ▶ untuk bergerak<br>
+                Tekan LOMPAT untuk menghindari!
+            </div>
+        </div>
+        <button class="start-btn" onclick="startGame()">▶ MULAI PETUALANGAN</button>
+    </div>
+
+    <!-- Game Board -->
+    <div class="game-container" id="gameContainer" style="display: none;">
+        <div class="game-header">
+            <div>❤️ HP: <span id="health">3</span></div>
+            <div>⭐ Poin: <span id="score">0</span></div>
+            <div>📊 Level: <span id="level">1</span></div>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <div class="player" id="player">🧑</div>
+            <div class="ground"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-move" id="btnLeft">◀ KIRI</button>
+            <button class="btn btn-action" id="btnJump">⬆ LOMPAT</button>
+            <button class="btn btn-move" id="btnRight">KANAN ▶</button>
+        </div>
+    </div>
+
+    <!-- Question Modal -->
+    <div class="modal" id="questionModal">
+        <div class="modal-content">
+            <div class="modal-title">❓ Tantangan Soal</div>
+            <div id="feedbackArea"></div>
+            <div class="modal-question" id="modalQuestion">Loading...</div>
+            <div class="option-buttons" id="optionButtons"></div>
+        </div>
+    </div>
+
+    <!-- End Screen -->
+    <div class="end-screen" id="endScreen">
+        <div class="end-icon">🎉</div>
+        <h2 style="font-size: 1.8rem;">Petualangan Selesai!</h2>
+        <div class="end-score" id="finalScore">0</div>
+        <div id="endMessage" style="font-size: 1.2rem; margin: 15px 0;">Luar Biasa!</div>
+        <button class="start-btn" onclick="location.reload()">🔄 Main Lagi</button>
+    </div>
+
+    <script>
+        const quizData = [
+            { q: "Apa pengertian literasi digital?", options: ["Kemampuan menggunakan komputer saja", "Kemampuan memilah, memahami, dan memanfaatkan informasi digital ✓", "Kemampuan membuat website", "Kemampuan menulis artikel"], correct: 1 },
+            { q: "Generasi yang lahir dengan teknologi disebut?", options: ["Digital immigrant", "Digital native ✓", "Digital citizen", "Digital expert"], correct: 1 },
+            { q: "Ciri utama berita HOAKS adalah?", options: ["Ditulis jurnalis terkenal", "Judul provokatif & sumber tidak jelas ✓", "Dari media massa", "Punya foto berkualitas tinggi"], correct: 1 },
+            { q: "Prinsip NETIKET yang benar adalah?", options: ["Post tanpa berpikir", "Think before posting & saring sebelum sharing ✓", "Bagikan semua info ke teman", "Jangan pernah posting di sosmed"], correct: 1 },
+            { q: "David Bawden menyebutkan berapa aspek literasi digital?", options: ["3 aspek", "5 aspek", "6 aspek ✓", "8 aspek"], correct: 2 },
+            { q: "DIGITAL COMPETENCE adalah kemampuan untuk?", options: ["Membuat aplikasi profesional", "Memilah & mengolah informasi digital ✓", "Menjual produk online", "Mengedit video profesional"], correct: 1 },
+            { q: "Apa itu DIGITAL TRANSFORMATION?", options: ["Mengubah desain website", "Inovasi menghasilkan produk/metode baru dgn teknologi ✓", "Membeli perangkat digital terbaru", "Upgrade sistem komputer"], correct: 1 },
+            { q: "Cara terbaik memverifikasi berita adalah?", options: ["Langsung percaya & share", "Periksa sumber & verifikasi kebenaran ✓", "Tanya teman-teman saja", "Lihat jumlah share saja"], correct: 1 },
+            { q: "Bagaimana literasi digital menjaga kebinekaan?", options: ["Memblokir orang berbeda pendapat", "Memilah info bijak & hormati keberagaman ✓", "Hanya bergaul satu kelompok", "Tidak perlu peduli informasi"], correct: 1 },
+            { q: "Manakah ciri BERITA VALID?", options: ["Judul bombastis & sensasional", "Sumber jelas, penulis tercantum, foto asli ✓", "Punya banyak share & like", "Ditulis anonim"], correct: 1 },
+            { q: "Dampak POSITIF literasi digital yang benar?", options: ["Semua orang jadi kaya dari internet", "Bedakan info valid & cegah hoaks ✓", "Tidak ada lagi perbedaan pendapat", "Internet jadi 100% aman"], correct: 1 },
+            { q: "DIGITAL NATIVE adalah generasi yang?", options: ["Lahir sebelum ada internet", "Lahir setelah ada teknologi digital ✓", "Tidak bisa menggunakan teknologi", "Ahli dalam membuat software"], correct: 1 },
+            { q: "Untuk mengidentifikasi foto hoaks, perhatikan?", options: ["Ukuran file fotonya saja", "Detail, warna tidak natural, garis aneh ✓", "Jumlah like di sosmed", "Nama pembuat foto"], correct: 1 },
+            { q: "Perilaku TIDAK baik di internet adalah?", options: ["Menulis komentar sopan", "Mengintip & mencuri data orang lain ✓", "Saling menghormati pendapat", "Memilih konten bermanfaat"], correct: 1 },
+            { q: "Tujuan literasi digital untuk kemajuan bangsa?", options: ["Membuat semua jadi programmer", "Masyarakat bijak gunakan teknologi untuk produktivitas ✓", "Menghapus semua sosial media", "Melarang penggunaan internet"], correct: 1 }
+        ];
+
+        let gameState = {
+            gameStarted: false,
+            score: 0,
+            health: 3,
+            level: 1,
+            playerX: 0,
+            playerY: 0,
+            isJumping: false,
+            velocityY: 0,
+            obstacles: [],
+            frameCount: 0,
+            speed: 3,
+            direction: 0
+        };
+
+        let gameBoard = null;
+        let player = null;
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameContainer').style.display = 'flex';
+            
+            gameBoard = document.getElementById('gameBoard');
+            player = document.getElementById('player');
+            
+            const boardRect = gameBoard.getBoundingClientRect();
+            gameState.playerX = (boardRect.width / 2) - 22;
+            gameState.playerY = boardRect.height - 130;
+            
+            player.style.left = gameState.playerX + 'px';
+            player.style.top = gameState.playerY + 'px';
+            
+            setupControls();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function setupControls() {
+            document.getElementById('btnLeft').addEventListener('touchstart', () => { gameState.direction = -1; });
+            document.getElementById('btnLeft').addEventListener('touchend', () => { gameState.direction = 0; });
+            document.getElementById('btnRight').addEventListener('touchstart', () => { gameState.direction = 1; });
+            document.getElementById('btnRight').addEventListener('touchend', () => { gameState.direction = 0; });
+            document.getElementById('btnJump').addEventListener('touchstart', jump);
+            document.getElementById('btnJump').addEventListener('click', jump);
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') gameState.direction = -1;
+                if (e.key === 'ArrowRight') gameState.direction = 1;
+                if (e.code === 'Space') { e.preventDefault(); jump(); }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') gameState.direction = 0;
+            });
+        }
+
+        function jump() {
+            if (!gameState.isJumping) {
+                gameState.velocityY = -12;
+                gameState.isJumping = true;
+            }
+        }
+
+        function gameLoop() {
+            const boardRect = gameBoard.getBoundingClientRect();
+
+            // Gerakan pemain
+            gameState.playerX += gameState.direction * 6;
+            gameState.playerX = Math.max(0, Math.min(gameState.playerX, boardRect.width - 45));
+
+            // Gravity
+            gameState.velocityY += 0.5;
+            gameState.playerY += gameState.velocityY;
+
+            // Ground collision
+            if (gameState.playerY >= boardRect.height - 130) {
+                gameState.playerY = boardRect.height - 130;
+                gameState.velocityY = 0;
+                gameState.isJumping = false;
+            }
+
+            player.style.left = gameState.playerX + 'px';
+            player.style.top = gameState.playerY + 'px';
+
+            // Spawn obstacles
+            gameState.frameCount++;
+            if (gameState.frameCount % Math.max(60 - gameState.level * 5, 20) === 0) {
+                spawnObstacle();
+            }
+
+            // Update obstacles
+            gameState.obstacles = gameState.obstacles.filter(obs => {
+                obs.y += gameState.speed + (gameState.level * 0.5);
+                obs.element.style.top = obs.y + 'px';
+                obs.element.style.left = obs.x + 'px';
+
+                // Collision detection
+                if (checkCollision(gameState.playerX, gameState.playerY, 45, 50, obs.x, obs.y, 50, 50)) {
+                    if (obs.type === 'question') {
+                        showQuestion();
+                        obs.element.remove();
+                        return false;
+                    } else if (obs.type === 'shield') {
+                        gameState.score += 50;
+                        obs.element.remove();
+                        return false;
+                    } else {
+                        gameState.health--;
+                        player.classList.add('hit');
+                        setTimeout(() => player.classList.remove('hit'), 300);
+                        if (gameState.health <= 0) {
+                            endGame();
+                        }
+                        obs.element.remove();
+                        return false;
+                    }
+                }
+
+                // Hapus jika off-screen
+                if (obs.y > boardRect.height) {
+                    obs.element.remove();
+                    gameState.score += 5;
+                    return false;
+                }
+
+                return true;
+            });
+
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnObstacle() {
+            const boardRect = gameBoard.getBoundingClientRect();
+            const types = ['spike', 'bomb', 'question', 'shield'];
+            const weights = [40, 30, 20, 10];
+            
+            let rand = Math.random() * 100;
+            let type = 'spike';
+            for (let i = 0; i < types.length; i++) {
+                rand -= weights[i];
+                if (rand <= 0) {
+                    type = types[i];
+                    break;
+                }
+            }
+
+            const obstacle = {
+                x: Math.random() * (boardRect.width - 50),
+                y: -50,
+                type: type,
+                element: null
+            };
+
+            const el = document.createElement('div');
+            el.className = `obstacle ${type}`;
+            el.style.left = obstacle.x + 'px';
+            el.style.top = obstacle.y + 'px';
+
+            const icons = { spike: '🌪️', bomb: '💣', question: '❓', shield: '🛡️' };
+            el.textContent = icons[type];
+
+            gameBoard.appendChild(el);
+            obstacle.element = el;
+            gameState.obstacles.push(obstacle);
+        }
+
+        function checkCollision(x1, y1, w1, h1, x2, y2, w2, h2) {
+            return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+        }
+
+        function showQuestion() {
+            const index = Math.floor(Math.random() * quizData.length);
+            const question = quizData[index];
+
+            document.getElementById('modalQuestion').textContent = question.q;
+            const optionsDiv = document.getElementById('optionButtons');
+            optionsDiv.innerHTML = '';
+            document.getElementById('feedbackArea').innerHTML = '';
+
+            question.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.addEventListener('touchstart', () => answerQuestion(idx, question.correct, btn));
+                btn.addEventListener('click', () => answerQuestion(idx, question.correct, btn));
+                optionsDiv.appendChild(btn);
+            });
+
+            document.getElementById('questionModal').classList.add('active');
+        }
+
+        function answerQuestion(selectedIdx, correctIdx, btn) {
+            const isCorrect = selectedIdx === correctIdx;
+
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+            if (isCorrect) {
+                gameState.score += 100;
+                btn.classList.add('correct');
+                document.getElementById('feedbackArea').innerHTML = '<div class="feedback correct">✅ BENAR! +100 Poin!</div>';
+            } else {
+                gameState.score = Math.max(0, gameState.score - 30);
+                btn.classList.add('wrong');
+                document.getElementById('feedbackArea').innerHTML = '<div class="feedback wrong">❌ SALAH! -30 Poin!</div>';
+            }
+
+            setTimeout(() => {
+                document.getElementById('questionModal').classList.remove('active');
+            }, 1500);
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('health').textContent = gameState.health;
+            document.getElementById('level').textContent = gameState.level;
+
+            if (gameState.score >= gameState.level * 200) {
+                gameState.level++;
+                showStageText(`🎯 LEVEL ${gameState.level}!`);
+            }
+        }
+
+        function showStageText(text) {
+            const el = document.createElement('div');
+            el.className = 'stage-text';
+            el.textContent = text;
+            document.querySelector('body').appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+        function endGame() {
+            gameState.gameStarted = false;
+            document.getElementById('finalScore').textContent = gameState.score;
+            
+            let msg = '';
+            if (gameState.score >= 500) msg = '🌟 JUARA LITERASI DIGITAL!';
+            else if (gameState.score >= 300) msg = '🎯 SANGAT HEBAT!';
+            else if (gameState.score >= 150) msg = '👍 BAGUS!';
+            else msg = '💪 SEMANGAT COBA LAGI!';
+            
+            document.getElementById('endMessage').textContent = msg;
+            document.getElementById('endScreen').classList.add('active');
+        }
+    </script>
+</body>
+</html>
